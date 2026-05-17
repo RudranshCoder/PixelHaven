@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Quality {
+  HD
+  FULL_HD
+  TWO_K
+  FOUR_K
+}
+
+enum CopyrightType {
+  ORIGINAL
+  LICENSED
+  USER_SUBMITTED
+  PUBLIC_DOMAIN
+}
+
+model Wallpaper {
+  id             String        @id @default(cuid())
+  title          String
+  slug           String        @unique
+  image_url      String
+  thumbnail_url  String
+  resolution     String
+  width          Int
+  height         Int
+  aspect_ratio   String
+  quality        Quality       @default(HD)
+  file_size      Int           @default(0)
+  views          Int           @default(0)
+  downloads      Int           @default(0)
+  is_featured    Boolean       @default(false)
+  copyright_type CopyrightType @default(ORIGINAL)
+  color          String?
+  device_type    String        @default("both") // mobile | desktop | both
+  category_id    String
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  category  Category       @relation(fields: [category_id], references: [id])
+  tags      WallpaperTag[]
+  reports   Report[]
+  favorites Favorite[]
+
+  @@index([category_id])
+  @@index([is_featured])
+  @@index([downloads])
+  @@index([views])
+  @@index([created_at])
+}
+
+model Category {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  slug        String      @unique
+  description String?
+  cover_url   String?
+  created_at  DateTime    @default(now())
+
+  wallpapers Wallpaper[]
+}
+
+model Tag {
+  id         String         @id @default(cuid())
+  name       String         @unique
+  slug       String         @unique
+  created_at DateTime       @default(now())
+
+  wallpapers WallpaperTag[]
+}
+
+model WallpaperTag {
+  wallpaper_id String
+  tag_id       String
+
+  wallpaper Wallpaper @relation(fields: [wallpaper_id], references: [id], onDelete: Cascade)
+  tag       Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([wallpaper_id, tag_id])
+}
+
+model Report {
+  id           String    @id @default(cuid())
+  wallpaper_id String
+  reason       String
+  created_at   DateTime  @default(now())
+
+  wallpaper Wallpaper @relation(fields: [wallpaper_id], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id           String    @id @default(cuid())
+  user_id      String
+  wallpaper_id String
+  created_at   DateTime  @default(now())
+
+  wallpaper Wallpaper @relation(fields: [wallpaper_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, wallpaper_id])
+}
